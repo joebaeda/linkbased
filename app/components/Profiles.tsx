@@ -132,15 +132,15 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
       // Redirect if no Base name found
       if (!basename) {
         return <div className="w-full absolute inset-0 flex justify-center items-center">
-          <Image
-            src="/loading.gif"
-            alt="loading"
-            width={200}
-            height={200}
-            unoptimized
-            className="rounded-full"
-          />
-        </div>;
+      <Image
+        src="/loading.gif"
+        alt="loading"
+        width={200}
+        height={200}
+        unoptimized
+        className="rounded-full"
+      />
+    </div>;
       }
 
       const profileDataArray = await Promise.all([
@@ -286,17 +286,16 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
   };
 
   const handleUpload = async () => {
+
     try {
-      const siteHash = await saveToIPFS();
-      console.log("Site Hash:", siteHash);
-      if (!siteHash) throw new Error('Failed to get Site hash');
-  
-      setIsUploading(false);
-  
-      const contentHBytes = contentHash.decode(siteHash);
-      const contentH = Buffer.from(contentHBytes).toString('hex');
-      console.log("Content Hash (hex):", contentH);
-  
+      const _siteHash = await saveToIPFS();
+      if (!_siteHash) throw new Error('Failed to get Site hash');
+
+      setIsUploading(false)
+
+      const contentH = contentHash.fromIpfs(_siteHash as string)
+      console.log(contentH)
+
       if (contentH) {
         uploadSite({
           abi: Layer2ResolverAbi,
@@ -304,7 +303,7 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
           address: Layer2ResolverAddress as `0x${string}`,
           functionName: "setContenthash",
           args: [namehash(data.basename as string), `0x${contentH}`],
-        });
+        })
       }
     } catch (error) {
       console.error("Error during minting:", (error as Error).message);
