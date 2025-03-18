@@ -286,16 +286,17 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
   };
 
   const handleUpload = async () => {
-
     try {
-      const _siteHash = await saveToIPFS();
-      if (!_siteHash) throw new Error('Failed to get Site hash');
-
-      setIsUploading(false)
-
-      const contentH = contentHash.fromIpfs(ipfsHash as string)
-      console.log(contentH)
-
+      const siteHash = await saveToIPFS();
+      console.log("Site Hash:", siteHash);
+      if (!siteHash) throw new Error('Failed to get Site hash');
+  
+      setIsUploading(false);
+  
+      const contentHBytes = contentHash.decode(siteHash);
+      const contentH = Buffer.from(contentHBytes).toString('hex');
+      console.log("Content Hash (hex):", contentH);
+  
       if (contentH) {
         uploadSite({
           abi: Layer2ResolverAbi,
@@ -303,7 +304,7 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
           address: Layer2ResolverAddress as `0x${string}`,
           functionName: "setContenthash",
           args: [namehash(data.basename as string), `0x${contentH}`],
-        })
+        });
       }
     } catch (error) {
       console.error("Error during minting:", (error as Error).message);
