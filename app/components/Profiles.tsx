@@ -129,7 +129,7 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
     if (initialData) return; // If initial data provided, skip fetch.
 
     async function fetchData() {
-      const basename = await getBasename(baseAddress as `0x${string}` || "0x4fc85b537adc18Ff354a32C6E13BBDcDd94a6D01");
+      const basename = await getBasename(baseAddress as `0x${string}`);
 
       // Redirect if no Base name found
       if (!basename) {
