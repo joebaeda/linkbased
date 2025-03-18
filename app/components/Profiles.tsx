@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   BasenameTextRecordKeys,
   getBasename,
@@ -82,7 +81,6 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [showError, setShowError] = useState(false);
   const [showMintSuccess, setShowMintSuccess] = useState(false);
-  const router = useRouter();
 
   const { added } = useViewer();
   const chainId = useChainId();
@@ -133,8 +131,16 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
 
       // Redirect if no Base name found
       if (!basename) {
-        router.push('https://base.org/name');
-        return;
+        return <div className="w-full absolute inset-0 flex justify-center items-center">
+          <Image
+            src="/loading.gif"
+            alt="loading"
+            width={200}
+            height={200}
+            unoptimized
+            className="rounded-full"
+          />
+        </div>;
       }
 
       const profileDataArray = await Promise.all([
@@ -182,7 +188,7 @@ export default function Profiles({ initialData = null }: ProfilesComponentProps)
     }
 
     fetchData();
-  }, [baseAddress, initialData, router]);
+  }, [baseAddress, initialData]);
 
   if (!data) {
     return <div className="w-full absolute inset-0 flex justify-center items-center">
