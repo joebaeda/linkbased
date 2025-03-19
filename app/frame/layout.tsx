@@ -13,7 +13,7 @@ const appUrl = "https://linkbased.xyz/frame";
 export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const ogImageUrl = `${appUrl}/og-image.jpg`;
+  const ogImageUrl = `https://linkbased.xyz/og-image.jpg`;
 
   return {
     title: "Link Based | Web3 Profile Generator",
@@ -51,7 +51,7 @@ export async function generateMetadata(): Promise<Metadata> {
             type: "launch_frame",
             name: "Link Based",
             url: appUrl,
-            splashImageUrl: `${appUrl}/splash.png`,
+            splashImageUrl: `https://linkbased.xyz/splash.png`,
             splashBackgroundColor: "#1b1423",
           },
         },
