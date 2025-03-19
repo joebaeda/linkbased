@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Provider from "./providers/Provider";
+import "../globals.css";
+import FrameProvider from "../providers/FrameProvider";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-const appUrl = "https://linkbased.xyz";
+const appUrl = "https://linkbased.xyz/frame";
+
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   const ogImageUrl = `${appUrl}/og-image.jpg`;
@@ -39,10 +41,26 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: '/favicon.ico',
     },
+    other: {
+      "fc:frame": JSON.stringify({
+        version: "next",
+        imageUrl: ogImageUrl,
+        button: {
+          title: "Generate Web3 Profile",
+          action: {
+            type: "launch_frame",
+            name: "Link Based",
+            url: appUrl,
+            splashImageUrl: `${appUrl}/splash.png`,
+            splashBackgroundColor: "#1b1423",
+          },
+        },
+      }),
+    },
   }
 };
 
-export default function RootLayout({
+export default function FrameLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -52,9 +70,9 @@ export default function RootLayout({
       <body
         className={`${geistMono.variable} antialiased`}
       >
-        <Provider>
+        <FrameProvider>
           {children}
-        </Provider>
+        </FrameProvider>
       </body>
     </html>
   );

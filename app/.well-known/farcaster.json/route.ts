@@ -10,7 +10,7 @@ export async function GET() {
       version: "1",
       name: "Link Based",
       iconUrl: "https://linkbased.xyz/icon.png",
-      homeUrl: "https://linkbased.xyz",
+      homeUrl: "https://linkbased.xyz/frame",
       imageUrl: "https://linkbased.xyz/og-image.jpg",
       buttonTitle: "Generate Web3 Profile",
       splashImageUrl: "https://linkbased.xyz/splash.png",

@@ -11,15 +11,17 @@ import {
 import Image from 'next/image';
 import { MessageCircle, Globe, Send, Mail, Phone, MapPinned, UserPlus, LockKeyhole, Leaf } from 'lucide-react';
 import Link from 'next/link';
-import EthFollowCounts from './EthereumFollowProtocol';
-import { generateLinkBasedHTML } from './LinkBased';
+import EthFollowCounts from '../components/EthereumFollowProtocol';
+import { generateLinkBasedHTML } from '../components/LinkBased';
 import { useAccount, useChainId, useConnect, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import sdk from '@farcaster/frame-sdk';
+import { useViewer } from '../providers/FrameContextProvider';
 import { Layer2ResolverAbi, Layer2ResolverAddress } from '@/lib/Layer2Resolver';
 import { base } from 'wagmi/chains';
 import { BaseError, namehash } from 'viem';
-import { config } from '@/lib/config';
+import Loading from '../components/svg/Loading';
 import contentHash from 'content-hash';
-import { useRouter } from 'next/navigation';
+import { frameConfig } from '@/lib/frameConfig';
 
 interface ProfileProps {
   avatar: string | null;
@@ -69,14 +71,14 @@ interface LinkBasedProps {
   discord: string;
 }
 
-export default function Profiles() {
+export default function FramePage() {
   const [data, setData] = useState<ProfileProps | null>();
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [showError, setShowError] = useState(false);
   const [showMintSuccess, setShowMintSuccess] = useState(false);
   const [showTermOfMint, setShowTermOfMint] = useState(false);
 
-  const router = useRouter();
+  const { added } = useViewer();
   const chainId = useChainId();
   const { connect } = useConnect();
   const { address: baseAddress, isConnected } = useAccount();
@@ -91,23 +93,25 @@ export default function Profiles() {
     hash: txHash,
   });
 
-  const shareToWarpcast = useCallback((siteUrl?: string) => {
+  const linkToShare = useCallback((siteUrl?: string) => {
     if (siteUrl) {
-      router.push(`https://warpcast.com/~/compose?text=Just%20create%20web3%20profile%20using%20my%20%40base%20.eth%20name%20%20${siteUrl}&embeds[]=https://linkbased.xyz/frame`)
+      sdk.actions.openUrl(
+        `https://warpcast.com/~/compose?text=Just%20Launching%20my%20Web3%20Profile!%20%20${siteUrl}&embeds[]=https://linkbased.xyz`
+      );
     }
-  }, [router]);
-
-  const shareToTwitter = useCallback((siteUrl?: string) => {
-    if (siteUrl) {
-      router.push(`https://x.com/intent/tweet?text=Just%20create%20web3%20profile%20using%20my%20%40base%20.eth%20name%20%20${siteUrl}&url=https%3A%2F%2Flinkbased.xyz`)
-    }
-  }, [router]);
+  }, []);
 
   const buyBaseName = useCallback((siteUrl?: string) => {
     if (siteUrl) {
-      router.push(siteUrl)
+      sdk.actions.openUrl(siteUrl)
     }
-  }, [router]);
+  }, []);
+
+  useEffect(() => {
+    if (!added) {
+      sdk.actions.addFrame();
+    }
+  }, [added]);
 
   useEffect(() => {
     if (isConfirmed) {
@@ -298,189 +302,110 @@ export default function Profiles() {
   };
 
   return (
-    <main className="relative w-full mx-auto min-h-screen bg-gradient-to-b from-[#000000] to-[#0c0c0e] text-gray-200">
+    <main className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-b from-[#000000] to-[#0c0c0e] text-gray-200">
 
-      {/* Header */}
-      <header className="w-full bg-black text-white py-6 px-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
-        {/* Logo Section (Left) */}
-        <div className="flex items-center space-x-3">
+      {data.header ? (
+        <div
+          className="absolute top-0 z-0 w-full h-40 rounded-b-xl bg-cover bg-center bg-gray-700 overflow-hidden"
+          style={{
+            backgroundImage: `url(${data.header.replace("ipfs://", "https://ipfs.io/ipfs/")})`,
+            filter: 'brightness(0.3) contrast(1.2)', // tweak as needed
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 rounded-b-xl"></div>
+        </div>
+      ) : (
+        <div
+          className="absolute top-0 z-0 w-full h-42 rounded-b-xl bg-cover bg-center bg-gray-700 overflow-hidden"
+          style={{
+            backgroundImage: 'url(https://picsum.photos/seed/picsum/1200/200)',
+            filter: 'brightness(0.3) contrast(1.2)', // tweak as needed
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 rounded-b-xl"></div>
+        </div>
+      )}
+
+      <div className="relative w-full max-w-xl mx-auto flex flex-col items-center space-y-4">
+
+        {data.avatar ? (
           <Image
-            src="/splash.png"
-            alt="link based"
-            width={70}
-            height={70}
-            priority
-            className="w-full h-full"
+            src={data.avatar}
+            alt="avatar"
+            width={200}
+            height={200}
+            className="rounded-2xl mt-12 border-4 border-white shadow-lg"
           />
-          <h1 className="text-4xl hidden md:block font-extrabold">LinkBased.</h1>
-        </div>
+        ) : (
+          <Image
+            src="/placeholder.gif"
+            alt="avatar"
+            width={200}
+            height={200}
+            unoptimized
+            className="rounded-2xl mt-12 bg-amber-50 border-4 border-white shadow-lg"
+          />
+        )}
 
-        {/* Connect Button Section (Right) */}
-        <div className="flex items-center space-x-4 p-4">
-          {/* Connect Button (Visible on all screens) */}
-          {isConnected && chainId === base.id ? (
-            <button
-              onClick={handleUpload}
-              disabled={
-                !isConnected ||
-                isUploading ||
-                isTxPending ||
-                isConfirming ||
-                isConfirmed ||
-                chainId !== base.id
-              }
-              className="bg-[#1e63fe] text-white font-bold p-4 rounded-2xl hover:bg-[#1e47fe] transition-all"
-            >
-              {isUploading || isTxPending || isConfirming ? (
-                <p>Deploying ...</p>
-              ) : (
-                <div className="flex space-x-3">
-                  <Leaf className="w-6 h-6" />
-                  <p>Deploy</p>
-                </div>
-              )}
-            </button>
-          ) : (
-            <button
-              className="bg-[#1e63fe] text-white font-bold p-4 rounded-2xl hover:bg-[#1e47fe] transition-all"
-              onClick={() => connect({ connector: config.connectors[0] })}
-            >
-              <div className="flex space-x-3">
-                <LockKeyhole className="w-6 h-6" /> 
-                <p>Sign In</p>
-              </div>
-            </button>
-          )}
-        </div>
-
-      </header>
-
-      <div className="max-w-7xl px-4 mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        {/* Hero section */}
-        <div className="w-full hidden md:flex flex-col justify-center items-center text-left space-y-8">
-          {/* Headline */}
-          <h1 className="text-5xl font-extrabold leading-tight">
-            Build Your Web3 Identity in{" "}
-            <span className="text-[#1e63fe]">One Click</span>
-          </h1>
-
-          {/* Subheadline */}
-          <p className="text-lg text-gray-300">
-            With <span className="font-semibold">Basename</span>, create a stunning Web3 profile instantly using your <span className="text-[#1e63fe]">.base.eth</span> domain. Go live and share it with the world at{" "}
-            <span className="font-mono text-[#1e63fe]">yourname.base.eth.limo</span> or <span className="font-mono text-[#1e63fe]">.link</span>.
-          </p>
-        </div>
-
-        {/* Preview Frame (Left Column) */}
-        <div className="relative w-full max-h-[calc(100vh-11rem)] rounded-2xl overflow-y-auto md:overflow-hidden">
-          <div className="relative w-full flex justify-center items-center p-4">
-            {data.header ? (
-              <div
-                className="absolute top-0 z-0 w-full h-40 rounded-t-2xl bg-cover bg-center bg-gray-700 overflow-hidden"
-                style={{
-                  backgroundImage: `url(${data.header.replace("ipfs://", "https://ipfs.io/ipfs/")})`,
-                  filter: 'brightness(0.3) contrast(1.2)', // tweak as needed
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60"></div>
-              </div>
-            ) : (
-              <div
-                className="absolute top-0 z-0 w-full h-42 rounded-b-xl bg-cover bg-center bg-gray-700 overflow-hidden"
-                style={{
-                  backgroundImage: 'url(https://picsum.photos/seed/picsum/1200/200)',
-                  filter: 'brightness(0.3) contrast(1.2)', // tweak as needed
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 rounded-b-xl"></div>
-              </div>
-            )}
-
-            <div className="relative w-full max-w-xl mx-auto flex flex-col items-center space-y-4">
-
-              {data.avatar ? (
-                <Image
-                  src={data.avatar}
-                  alt="avatar"
-                  width={200}
-                  height={200}
-                  className="rounded-2xl mt-12 border-4 border-white shadow-lg"
-                />
-              ) : (
-                <Image
-                  src="/placeholder.gif"
-                  alt="avatar"
-                  width={200}
-                  height={200}
-                  unoptimized
-                  className="rounded-2xl mt-12 bg-amber-50 border-4 border-white shadow-lg"
-                />
-              )}
-
-              {data.display ? (
-                <div className="w-full flex flex-row justify-center items-center space-x-3">
-                  <h1 className="text-3xl font-extrabold">{data.display}</h1>
-                  <Link href={`https://efp.app/${baseAddress?.toLowerCase() || "0x4fc85b537adc18ff354a32c6e13bbdcdd94a6d01"}`} rel="noopener noreferrer" target="_blank"><UserPlus className="w-8 h-8 text-amber-300" /></Link>
-                </div>
-              ) : (
-                <div className="w-full flex flex-row justify-center items-center space-x-3">
-                  <h1 className="text-3xl font-extrabold">{data.basename}</h1>
-                  <Link href={`https://efp.app/${baseAddress?.toLowerCase() || "0x4fc85b537adc18ff354a32c6e13bbdcdd94a6d01"}`} rel="noopener noreferrer" target="_blank"><UserPlus className="w-8 h-8 text-amber-300" /></Link>
-                </div>
-              )}
-
-              <EthFollowCounts basename={data.basename as `0x${string}`} />
-
-              {data.description && <p className="w-full px-6 text-center text-md">{data.description}</p>}
-
-              {data.keywords && (
-                <div className="w-full flex flex-wrap gap-2 justify-center">
-                  {data.keywords.split(",").map((keyword, index) => (
-                    <span
-                      key={index}
-                      className="bg-white/10 backdrop-blur rounded-2xl p-3 hover:bg-white/20 transition-all"
-                    >
-                      {keyword.trim()}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {data.location && (
-                <div className="flex flex-row opacity-25 justify-center items-center space-x-1">
-                  <MapPinned className="w-4 h-4" />
-                  <p className="text-lg font-bold">{data.location}</p>
-                </div>
-              )}
-
-              <div className="w-full max-w-xl flex flex-col space-y-3 mt-4">
-                {links.map(link => (
-                  <Link
-                    key={link.name}
-                    href={link.url ? link.url : "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex p-4 items-center justify-between space-x-3 bg-white/10 backdrop-blur rounded-2xl hover:bg-white/20 transition-all"
-                  >
-                    <span>{link.name}</span>
-                    {link.icon}
-                  </Link>
-                ))}
-              </div>
-            </div>
+        {data.display ? (
+          <div className="w-full flex flex-row justify-center items-center space-x-3">
+            <h1 className="text-3xl font-extrabold">{data.display}</h1>
+            <Link href={`https://efp.app/${baseAddress?.toLowerCase()}`} rel="noopener noreferrer" target="_blank"><UserPlus className="w-8 h-8 text-amber-300" /></Link>
           </div>
-        </div>
+        ) : (
+          <div className="w-full flex flex-row justify-center items-center space-x-3">
+            <h1 className="text-3xl font-extrabold">{data.basename}</h1>
+            <Link href={`https://efp.app/${baseAddress?.toLowerCase()}`} rel="noopener noreferrer" target="_blank"><UserPlus className="w-8 h-8 text-amber-300" /></Link>
+          </div>
+        )}
 
+        <EthFollowCounts basename={data.basename as `0x${string}`} />
+
+        {data.description && <p className="w-full px-6 text-center text-md">{data.description}</p>}
+
+        {data.keywords && (
+          <div className="w-full flex flex-wrap gap-2 justify-center">
+            {data.keywords.split(",").map((keyword, index) => (
+              <span
+                key={index}
+                className="bg-white/10 backdrop-blur rounded-2xl p-3 hover:bg-white/20 transition-all"
+              >
+                {keyword.trim()}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {data.location && (
+          <div className="flex flex-row opacity-25 justify-center items-center space-x-1">
+            <MapPinned className="w-4 h-4" />
+            <p className="text-lg font-bold">{data.location}</p>
+          </div>
+        )}
+
+        <div className="w-full max-w-xl flex flex-col space-y-3 mt-4">
+          {links.map(link => (
+            <Link
+              key={link.name}
+              href={link.url ? link.url : "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex p-4 items-center justify-between space-x-3 bg-white/10 backdrop-blur rounded-2xl hover:bg-white/20 transition-all"
+            >
+              <span>{link.name}</span>
+              {link.icon}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Footer */}
-      <footer className="w-full md:hidden p-4 max-w-2xl mx-auto mt-8 text-center text-sm text-gray-500">
-        <p>linkbased.xyz is a web3-based profile using{' '}
-          <span className="font-semibold">Basenames (base.eth) and EFP</span> as its data source.
+      <div className="w-full p-4 max-w-xl mx-auto mt-8 text-center text-sm text-gray-500">
+        <p>linkbased.xyz is a web3-based profile using the{' '}
+          <span className="font-semibold">Basenames &#40;base.eth&#41; and EFP &#40;Ethereum Follow Protocol&#41;</span> as its data source.
           developed by{' '}
           <a
-            href="https://warpcast.com/joebaeda"
+            href="https://warpcast.com/joebaeda" // Replace with your actual profile link
             target="_blank"
             rel="noopener noreferrer"
             className="font-bold text-amber-300 hover:underline"
@@ -489,7 +414,7 @@ export default function Profiles() {
           </a>.
         </p>
         <p className="py-3">Copyright © {new Date().getFullYear()}</p>
-      </footer>
+      </div>
 
       {/* Transaction Success */}
       {showMintSuccess && (
@@ -505,15 +430,9 @@ export default function Profiles() {
             />
             <button
               className="w-full p-3 rounded-xl bg-gradient-to-r from-[#201029] to-[#290f37] disabled:cursor-not-allowed"
-              onClick={() => shareToWarpcast(`https://${data.basename}.limo`)}
+              onClick={() => linkToShare(`https://${data.basename}.limo`)}
             >
-              Share to Warpcast
-            </button>
-            <button
-              className="w-full p-3 rounded-xl bg-gradient-to-r from-[#201029] to-[#290f37] disabled:cursor-not-allowed"
-              onClick={() => shareToTwitter(`https://${data.basename}.limo`)}
-            >
-              Share to X/Twitter
+              Share
             </button>
           </div>
         </div>
@@ -523,7 +442,7 @@ export default function Profiles() {
       {showError && isTxError && (
         <div
           onClick={() => setShowError(false)}
-          className="fixed w-full backdrop-blur-lg p-4 inset-0 mx-auto flex items-center justify-center z-30"
+          className="absolute top-1/4 mx-auto flex items-center justify-center p-4 z-10 w-full max-w-[90%] md:max-w-[384px] max-h-[384px]"
         >
           <div className="relative bg-[#230b36cc] bg-opacity-25 backdrop-blur-[10px] text-slate-300 p-6 rounded-2xl shadow-lg text-center">
             <p className="text-center p-4">
@@ -554,6 +473,40 @@ export default function Profiles() {
           </div>
         </div>
       )}
+
+      {/* Deploy button */}
+        <div className="fixed bottom-10 flex justify-center items-center p-4 w-[100px] h-28 mx-auto rounded-full bg-[#1b1525]">
+          {isConnected && chainId === base.id ? (
+            <button
+              onClick={handleUpload}
+              disabled={
+                !isConnected ||
+                isUploading ||
+                isTxPending ||
+                isConfirming ||
+                isConfirmed ||
+                chainId !== base.id
+              }
+              className="relative w-full"
+            >
+              {isUploading || isTxPending || isConfirming ? (
+                <div className="absolute z-0 inset-0 flex max-w-[300px] mx-auto justify-center items-center text-gray-500 text-center">
+                  <div className="absolute animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-[#3014ce]"></div>
+                  <Loading className="w-16 h-16" />
+                </div>
+              ) : (
+                <Leaf className="w-16 h-16 text-blue-600" />
+              )}
+            </button>
+          ) : (
+            <button
+              className="relative w-full"
+              onClick={() => connect({ connector: frameConfig.connectors[0] })}
+            >
+              <LockKeyhole className="w-16 h-16 text-blue-600" />
+            </button>
+          )}
+        </div>
 
     </main>
   );

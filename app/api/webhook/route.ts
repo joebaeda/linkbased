@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
           fid,
           title: "Welcome to Link Based!",
           body: "Web3 Profile generator for your .base.eth name",
-          targetUrl: "https://linkbased.xyz",
+          targetUrl: "https://linkbased.xyz/frame",
         });
       } else {
         await deleteUserNotificationDetails(fid);
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         fid,
         title: "Ding ding ding",
         body: "Notifications are now enabled",
-        targetUrl: "https://linkbased.xyz",
+        targetUrl: "https://linkbased.xyz/frame",
       });
 
       break;
